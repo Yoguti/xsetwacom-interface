@@ -8,7 +8,7 @@ This project allows the use of a user interface for the xsetwacom drivers in mos
 
 #### How do I use it?
 
-Simply download the file named as "install-script" and execute it. The file will download the necessary dependencies and setup the project for you. After the installation is complete, type out "wacomui" in you terminal to open the program.
+Simply download the file named as "install-script" and execute it ("lua install-script.lua". The file will download the necessary dependencies and setup the project for you. After the installation is complete, type out "wacomui" in you terminal to open the program.
 
 #### Does it work for my distro?
 
