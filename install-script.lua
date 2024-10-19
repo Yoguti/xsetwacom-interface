@@ -289,7 +289,7 @@ function check_and_install_dependencies()
     return true
 end
 
--- Function to clone the GitHub repository (excluding install-script.lua)
+-- Function to clone the GitHub repository
 function clone_repository()
     -- Clone the repository
     print("Cloning the GitHub repository...")
@@ -301,28 +301,14 @@ function clone_repository()
         return false
     end
 
-    -- Navigate to the project directory and remove install-script.lua
-    print("Excluding install-script.lua from the repository...")
-    local exclude_cmd = "cd xsetwacom-interface && git checkout HEAD -- :!install-script.lua"
-    local exclude_result = os.execute(exclude_cmd)
-
-    if exclude_result ~= 0 then
-        print("Failed to exclude install-script.lua.")
-        return false
-    end
-
-    return true  -- Add return true to indicate success
+    return true
 end
 
 -- Function to create the "wacomui" command
 function createCommand()
     print("Creating 'wacomui' command...")
     
-    -- Get the current user's home directory
-    local home = os.getenv("HOME")
-    
-    -- Define the path where the repository was cloned
-    local repo_path = home .. "/xsetwacom-interface"
+    local repo_path = io.popen("git rev-parse --show-toplevel"):read("*l")
     
     -- Create the command script
     local command_script = [[
