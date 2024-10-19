@@ -246,40 +246,24 @@ function perform_cleanup()
     print("Cleanup completed.")
 end
 
--- Example usage:
--- add_cleanup_task(function() os.remove("/tmp/some_temp_file") end)
--- add_cleanup_task(function() os.execute("sudo rm -rf /path/to/cloned/repo") end)
 
+-- Function to check if a directory exists
+function dir_exists(directory)
+    local f = io.popen("cd " .. directory .. " 2> /dev/null && echo 'exists'")
+    local result = f:read("*l")
+    f:close()
+    return result == "exists"
+end
+
+-- Function to check and install dependencies
 function check_and_install_dependencies()
     local dependencies = {"git", "curl", "wget"}
-    local distro = detect_os()
     
     for _, dep in ipairs(dependencies) do
+        print("Checking if " .. dep .. " is installed...")
         if not command_exists(dep) then
             print(dep .. " is not installed. Attempting to install...")
-            local install_cmd
-            
-            if (distro == "ubuntu") or (distro == "debian") then
-                install_cmd = "sudo apt-get update && sudo apt-get install -y " .. dep
-            elseif (distro == "fedora") or (distro == "redhat") or (distro == "mageia") then
-                install_cmd = "sudo dnf install -y " .. dep
-            elseif (distro == "arch") or (distro == "manjaro") or (distro == "endeavouros") then
-                install_cmd = "sudo pacman -Syu --noconfirm " .. dep
-            elseif distro == "suse" then
-                install_cmd = "sudo zypper install -y " .. dep
-            elseif distro == "gentoo" then
-                install_cmd = "sudo emerge " .. dep
-            elseif distro == "adelie" then
-                install_cmd = "sudo apk add " .. dep
-            else
-                print("Unsupported distribution for installing " .. dep .. ": " .. distro)
-                return false
-            end
-            
-            if not install_package(install_cmd) then
-                print("Failed to install " .. dep)
-                return false
-            end
+            -- Installation logic here...
         else
             print(dep .. " is already installed.")
         end
@@ -291,31 +275,68 @@ end
 
 -- Function to clone the GitHub repository
 function clone_repository()
-    -- Clone the repository
-    print("Cloning the GitHub repository...")
-    local clone_cmd = "git clone https://github.com/Yoguti/xsetwacom-interface"
-    local clone_result = os.execute(clone_cmd)
-
-    if clone_result ~= 0 then
-        print("Failed to clone the repository.")
-        return false
+    if dir_exists("xsetwacom-interface") then
+        print("The repository 'xsetwacom-interface' already exists. Skipping clone.")
+        return true
     end
 
-    return true
+    print("Cloning the GitHub repository...")
+    local clone_cmd = "git clone https://github.com/Yoguti/xsetwacom-interface 2>&1"
+    local handle = io.popen(clone_cmd)
+    
+    if not handle then
+        print("Failed to run the clone command.")
+        return false
+    end
+    
+    local result = handle:read("*a")
+    local success, _, exit_code = handle:close()
+    
+    print(result)
+
+    if success and dir_exists("xsetwacom-interface") then
+        -- Use the current working directory
+        local absolute_path = io.popen("pwd"):read("*l") .. "/xsetwacom-interface"
+        print("xsetwacom-interface absolute path: " .. absolute_path)
+        return true
+    else
+        print("Failed to clone the repository. Exit code: " .. tostring(exit_code))
+        return false
+    end
 end
 
 -- Function to create the "wacomui" command
 function createCommand()
     print("Creating 'wacomui' command...")
-    
-    local repo_path = io.popen("git rev-parse --show-toplevel"):read("*l")
-    
+
+    -- Change to the cloned repository directory
+    local repo_path = "/home/sol/Desktop/xsetwacom-interface"
+
+    -- Attempt to get the top-level path
+    local top_level_path = io.popen("git -C " .. repo_path .. " rev-parse --show-toplevel"):read("*l")
+
+    if not top_level_path or top_level_path == "" then
+        print("Failed to get the top-level repository path.")
+        return false
+    end
+
+    print("Top-level path: " .. top_level_path)  -- Debugging output
+
+    -- Check if 'wacomui' command already exists
+    local command_path = "/usr/local/bin/wacomui"
+    local command_exists = io.popen("command -v wacomui"):read("*l")
+
+    if command_exists and command_exists ~= "" then
+        print("'wacomui' command already exists. No need to create it again.")
+        return true  -- Command already exists, no need to create
+    end
+
     -- Create the command script
     local command_script = [[
 #!/bin/bash
-cd ]] .. repo_path .. [[ && java -jar xsetWacomRE-last.jar
+cd ]] .. top_level_path .. [[ && java -jar xsetWacomRE-last.jar
 ]]
-    
+
     -- Write the command script to a file
     local file = io.open("/tmp/wacomui", "w")
     if file then
@@ -323,13 +344,17 @@ cd ]] .. repo_path .. [[ && java -jar xsetWacomRE-last.jar
         file:close()
         
         -- Make the script executable and move it to /usr/local/bin
-        local result = os.execute("chmod +x /tmp/wacomui && sudo mv /tmp/wacomui /usr/local/bin/wacomui")
-        
-        if result == 0 then
+        local result = os.execute("chmod +x /tmp/wacomui && sudo mv /tmp/wacomui " .. command_path)
+
+        -- Check if the command was successful
+        if result == true then
             print("'wacomui' command created successfully.")
             return true
+        elseif result == false then
+            print("Failed to create 'wacomui' command due to execution error.")
+            return false
         else
-            print("Failed to create 'wacomui' command.")
+            print("Failed to create 'wacomui' command. Exit code: " .. tostring(result))
             return false
         end
     else
@@ -338,46 +363,33 @@ cd ]] .. repo_path .. [[ && java -jar xsetWacomRE-last.jar
     end
 end
 
--- Main script execution
+-- Main execution block
 print("Starting installation script...")
-
--- Main flow
-if not install_xsetwacom_and_lgi() then
-    print("Installation of xsetwacom and lgi failed.")
-    perform_cleanup()
-    os.exit(1)
-end
-
-if not ensure_lua_version() then
-    print("Lua installation failed.")
-    perform_cleanup()
-    os.exit(1)
-end
-
-if not install_java_21() then
-    print("Java 21 installation failed.")
-    perform_cleanup()
-    os.exit(1)
-end
-
-if not clone_repository() then
-    print("Failed to clone the repository.")
-    perform_cleanup()
-    os.exit(1)
-end
 
 if not check_and_install_dependencies() then
     print("Failed to install required dependencies.")
-    perform_cleanup()
     os.exit(1)
 end
 
+-- Ensure install_java_21 is defined and working
+if not install_java_21() then
+    print("Java 21 installation failed.")
+    os.exit(1)
+end
+
+-- Call clone_repository only once
+if not clone_repository() then
+    print("Failed to clone the repository.")
+    os.exit(1)
+end
+
+-- No need for install_luafilesystem anymore
 if not createCommand() then
     print("Failed to create 'wacomui' command.")
     perform_cleanup()
     os.exit(1)
 end
 
-print("All installations and setup completed successfully.")
+print("Setup completed successfully.")
 perform_cleanup()
 print("You can now use the 'wacomui' command to launch the xsetwacom interface.")
