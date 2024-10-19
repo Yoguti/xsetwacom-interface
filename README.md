@@ -1,7 +1,5 @@
 
-## FAQ
-
-#### How do I use it?
+## Installation
 
 Simply download the file named as "install-script" and execute it. 
 
@@ -10,8 +8,9 @@ Simply download the file named as "install-script" and execute it.
 ```
 
 The file will download the necessary dependencies and setup the project for you. After the installation is complete, type out "wacomui" in you terminal to open the program.
+    
 
-
+## FAQ
 
 #### Does it work for my distro?
 
@@ -26,6 +25,10 @@ This will execute the program. Note that the "wacomui" shortcut will not be adde
 #### Something is broken/could be improved. How do I fix it?
 
 Feel free to send me a request, and I will do my best to address any issues.
+
+#### A command stopped working, what should I do?
+
+If a command in the "Specific" tab used to work but no longer does, it might be due to an update in the xsetwacom drivers. These updates can change command names, and since the program relies on internal checks for commands, it may not reflect the most up-to-date xsetwacom implementation. Please issue a request informing me of any errors related to this issue.
 
 #### Why is there no way simple way to configure tablet/stylus buttons?
 
