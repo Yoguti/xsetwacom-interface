@@ -28,13 +28,6 @@ function detect_os()
     return distro
 end
 
--- Function to check if a command exists
-function command_exists(cmd)
-    local handle = io.popen("which " .. cmd .. " 2>/dev/null")
-    local result = handle:read("*a"):gsub("\n", "")
-    handle:close()
-    return result ~= ""
-end
 
 -- Function to install a package using the appropriate package manager
 function install_package(package_cmd)
@@ -258,26 +251,58 @@ end
 -- Function to check and install dependencies
 function check_and_install_dependencies()
     local dependencies = {"git", "curl", "wget"}
-    
+    local distro = detect_os()
+
     for _, dep in ipairs(dependencies) do
         print("Checking if " .. dep .. " is installed...")
-        if not command_exists(dep) then
-            print(dep .. " is not installed. Attempting to install...")
-            -- Installation logic here...
-        else
+        local dep_installed = command_exists(dep)
+
+        if dep_installed then
             print(dep .. " is already installed.")
+        else
+            print(dep .. " is not installed. Installing...")
+            local dep_install_cmd
+            if (distro == "ubuntu") or (distro == "debian") then
+                dep_install_cmd = 'sudo apt-get update && sudo apt-get install -y ' .. dep
+            elseif (distro == "fedora") or (distro == "redhat") or (distro == "mageia") then
+                dep_install_cmd = 'sudo dnf install -y ' .. dep
+            elseif (distro == "arch") or (distro == "manjaro") or (distro == "endeavouros") then
+                dep_install_cmd = 'sudo pacman -Syu --noconfirm ' .. dep
+            elseif distro == "suse" then
+                dep_install_cmd = 'sudo zypper install -y ' .. dep
+            elseif distro == "gentoo" then
+                dep_install_cmd = 'sudo emerge ' .. dep
+            elseif distro == "adelie" then
+                dep_install_cmd = 'sudo apk add ' .. dep
+            else
+                print("Unsupported distribution for dependency installation: " .. distro)
+                return false
+            end
+            if not install_package(dep_install_cmd) then
+                return false
+            end
+            print(dep .. " installation completed successfully.")
         end
     end
-    
+
     print("All dependencies are installed.")
     return true
+end
+
+
+-- Function to check if a command exists
+function command_exists(cmd)
+    local handle = io.popen("which " .. cmd .. " 2>/dev/null")
+    local result = handle:read("*a"):gsub("\n", "")
+    handle:close()
+    return result ~= ""
 end
 
 -- Function to clone the GitHub repository
 function clone_repository()
     if dir_exists("xsetwacom-interface") then
         print("The repository 'xsetwacom-interface' already exists. Skipping clone.")
-        return true
+        return io.popen("pwd"):read("*l") .. "/xsetwacom-interface"
     end
 
     print("Cloning the GitHub repository...")
@@ -286,7 +311,7 @@ function clone_repository()
     
     if not handle then
         print("Failed to run the clone command.")
-        return false
+        return nil
     end
     
     local result = handle:read("*a")
@@ -298,19 +323,16 @@ function clone_repository()
         -- Use the current working directory
         local absolute_path = io.popen("pwd"):read("*l") .. "/xsetwacom-interface"
         print("xsetwacom-interface absolute path: " .. absolute_path)
-        return true
+        return absolute_path
     else
         print("Failed to clone the repository. Exit code: " .. tostring(exit_code))
-        return false
+        return nil
     end
 end
 
 -- Function to create the "wacomui" command
-function createCommand()
+function createCommand(repo_path)
     print("Creating 'wacomui' command...")
-
-    -- Change to the cloned repository directory
-    local repo_path = "/home/sol/Desktop/xsetwacom-interface"
 
     -- Attempt to get the top-level path
     local top_level_path = io.popen("git -C " .. repo_path .. " rev-parse --show-toplevel"):read("*l")
@@ -378,13 +400,14 @@ if not install_java_21() then
 end
 
 -- Call clone_repository only once
-if not clone_repository() then
+local repo_path = clone_repository()
+if not repo_path then
     print("Failed to clone the repository.")
     os.exit(1)
 end
 
--- No need for install_luafilesystem anymore
-if not createCommand() then
+-- Create the 'wacomui' command
+if not createCommand(repo_path) then
     print("Failed to create 'wacomui' command.")
     perform_cleanup()
     os.exit(1)
