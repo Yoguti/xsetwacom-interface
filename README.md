@@ -33,3 +33,10 @@ If a command in the "Specific" tab used to work but no longer does, it might be 
 #### Why is there no way simple way to configure tablet/stylus buttons?
 
 This is a limitation I encountered while developing the interface. Unfortunately, I couldn't find an easy method to facilitate interactions with those settings. If you have any ideas, please send me a request.
+
+
+## Tech Stack
+
+**Front-end:** Java Swing
+
+**Back-end:** Java, Lua
