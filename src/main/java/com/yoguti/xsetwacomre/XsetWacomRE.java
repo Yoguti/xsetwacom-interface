@@ -1439,32 +1439,40 @@ public class XsetWacomRE extends javax.swing.JDialog {
     }//GEN-LAST:event_SaveButton1ActionPerformed
 
     private void LoadButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_LoadButton1ActionPerformed
-        //open a file chooser that only allows .wacom files to be selected
-        //once the user selects a file, take it and itererate trough every call inside the file
-        //for every call on the file call the LuaBridge.CallBash(device, parameter, value) method and pass the variables stored in each call;
+        
+    // Open a file chooser that only allows .wacom files to be selected
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Open .wacom File");
+    fileChooser.setFileFilter(new FileNameExtensionFilter(".wacom files", "wacom"));
+    int userSelection = fileChooser.showOpenDialog(this);  // Assuming 'this' refers to a JFrame or JPanel context
 
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Open .wacom File");
-        fileChooser.setFileFilter(new FileNameExtensionFilter(".wacom files", "wacom"));
-        int userSelection = fileChooser.showOpenDialog(this);  // Assuming 'this' refers to a JFrame or JPanel context
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToLoad = fileChooser.getSelectedFile();
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileToLoad))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                
+                // Ensure exactly 3 parts (device, parameter, value)
+                if (parts.length == 3) {
+                    // Trim each part to remove unnecessary whitespace
+                    String device = parts[0].trim();
+                    String parameter = parts[1].trim();
+                    String value = parts[2].trim();
+                    
+                    // Log the values to check if they are parsed correctly
+                    System.out.println("Device: " + device + ", Parameter: " + parameter + ", Value: " + value);
 
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToLoad = fileChooser.getSelectedFile();
-            try (BufferedReader reader = new BufferedReader(new FileReader(fileToLoad))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split(",");
-                    if (parts.length == 3) {
-                        String device = parts[0];
-                        String parameter = parts[1];
-                        String value = parts[2];
-                        LuaBridge.CallBash(device, parameter, value);
-                    }
+                    // Call the LuaBridge with the parsed values
+                    LuaBridge.CallBash(device, parameter, value);
+                } else {
+                    System.out.println("Invalid line format: " + line);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
     }//GEN-LAST:event_LoadButton1ActionPerformed
 
     private void textx1FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_textx1FocusGained
