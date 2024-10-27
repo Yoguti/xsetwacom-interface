@@ -1,5 +1,8 @@
 
+![2024-10-27_12-19](https://github.com/user-attachments/assets/024b55e8-d7f2-447a-b0e6-cba661af6a72)
+
 ## Installation
+
 
 Simply download the file named as "install-script" and execute it. 
 
